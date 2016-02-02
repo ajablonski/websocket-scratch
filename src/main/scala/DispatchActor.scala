@@ -1,7 +1,4 @@
-import java.util.Properties
-
 import akka.actor.{Actor, ActorRef, Terminated}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
 object DispatchActor {
   trait DispatchEvent
@@ -11,15 +8,10 @@ object DispatchActor {
 }
 
 class DispatchActor extends Actor {
-  val properties = new Properties()
-
-  properties.setProperty("bootstrap.servers", "127.0.0.1:9092")
-  properties.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  properties.setProperty("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  properties.setProperty("request.required.acks", "1")
-  val producer = new KafkaProducer[Integer, String](properties)
+  val producer = new KafkaAkkaProducer()
 
   import DispatchActor._
+
   // The "state" of this actor, a mutable, changing set of ActorRefs, each representing a websocket connection
   var subscribers = Set.empty[(String, ActorRef)]
 
@@ -39,7 +31,7 @@ class DispatchActor extends Actor {
       subscribers = subscribers.filterNot(_._2 == subscriber)
     // On a received message, broadcast it to all of the registered Actors
     case msg: ReceivedMessage =>
-      producer.send(new ProducerRecord[Integer, String]("test", msg.msg))
+      producer.send(msg.msg)
       broadcast(msg)
   }
 }
