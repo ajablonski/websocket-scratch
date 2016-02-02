@@ -4,6 +4,9 @@ import java.util.Map.Entry
 import java.util.Properties
 import java.util.function.Consumer
 
+import com.softwaremill.react.kafka.{ConsumerProperties, ProducerProperties}
+import kafka.serializer.{StringDecoder, StringEncoder}
+
 
 object KafkaConfiguration {
   lazy val properties = {
@@ -25,6 +28,21 @@ object KafkaConfiguration {
     }
     properties
   }
+
+  lazy val consumerProperties = (groupId: String) => ConsumerProperties[String](
+    brokerList = properties.getProperty("bootstrap.servers"),
+    zooKeeperHost = properties.getProperty("zookeeper.host"),
+    topic = properties.getProperty("topic"),
+    groupId = groupId,
+    decoder = new StringDecoder()
+  )
+
+  lazy val producerProperties = ProducerProperties[String](
+    brokerList = properties.getProperty("bootstrap.servers"),
+    topic = properties.getProperty("topic"),
+    encoder = new StringEncoder()
+  )
+
 
   lazy val topic = {
     properties.getProperty("topic")
