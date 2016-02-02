@@ -3,3 +3,6 @@
 target
 project/.sbtserver.lock
 project/project
+*.iml
+*.ipr
+*.iws
