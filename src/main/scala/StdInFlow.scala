@@ -2,7 +2,6 @@
 import java.io.File
 
 import akka.actor.ActorSystem
-import akka.http.javadsl.model.ws.Message
 import akka.stream.scaladsl._
 import akka.stream.{ActorMaterializer, ClosedShape}
 import akka.util.ByteString
