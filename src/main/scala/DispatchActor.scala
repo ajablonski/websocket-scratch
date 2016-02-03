@@ -1,4 +1,4 @@
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.ActorRef
 
 object DispatchActor {
   trait DispatchEvent
