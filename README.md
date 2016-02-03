@@ -1,14 +1,20 @@
 # Setup
 
 ## Mac
-### Install Kafka
-1. `brew install kafka`
-
-### Start Kafka
-1. Start Zookeeper
+1. Install Kafka
+`brew install kafka`
+2. Start Zookeeper
 `zookeeper-server-start.sh /usr/local/opt/kafka/libexec/config/zookeeper.properties`
-2. Start Kafka
+3. Start Kafka
 `kafka-server-start.sh -daemon /usr/local/opt/kafka/libexec/config/server.properties`
+
+## Linux
+1. Download Kafka 0.8.2.x from http://kafka.apache.org/downloads.html
+2. Extract the contents from the .tgz
+3. From within the unzipped kafka package, start Zookeeper
+`./bin/zookeeper-server-start.sh config/zookeeper.properties`
+4. Start Kafka
+`./bin/kafka-server-start.sh config/server.properties`
 
 ## All platforms
 
