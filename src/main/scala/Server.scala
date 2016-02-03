@@ -16,10 +16,10 @@ object Server extends App {
 
   // Create our service and bind it
   val service = new DispatchService
-  val binding = Http().bindAndHandle(service.route, interface, port)
+  val futureBinding = Http().bindAndHandle(service.route, interface, port)
 
   // Log the result of the binding...
-  binding.onComplete {
+  futureBinding.onComplete {
     case Success(binding) ⇒
       val localAddress = binding.localAddress
       println(s"Server is listening on ${localAddress.getHostName}:${localAddress.getPort}")
