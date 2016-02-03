@@ -20,35 +20,17 @@ class DispatchService(implicit fm: Materializer, system: ActorSystem) extends Di
   val objectMapper = new ObjectMapper() with ScalaObjectMapper {{
     registerModule(DefaultScalaModule)
   }}
-
   // Only one Kafka publish actor per server right now
   val publishActor: ActorRef = kafka.producerActor(KafkaConfiguration.producerProperties)
 
-  // Constructs and returns a flow that:
-  // 1. takes its input and redirects it to Kafka
-  // 2. provides as output all messages from Kafka
-  def kafkaFlow(sender: String): Flow[String, String, Unit] = {
-    val kafkaConsumer: Publisher[KafkaMessage[String]] = createKafkaConsumer(sender)
-
-    val in: Sink[String, Unit] = Flow[String]
-      .map(serializedMessage => ActorSubscriberMessage.OnNext(serializedMessage))
-      .to(Sink.actorRef(publishActor, ActorSubscriberMessage.OnComplete))
-    val out: Source[String, Unit] = Source
-      .fromPublisher(kafkaConsumer)
-      .map[String](_.message())
-
-    Flow.fromSinkAndSource(in, out)
-  }
-
-  def createKafkaConsumer(sender: String): Publisher[KafkaMessages.KafkaMessage[String]] = {
-    val consumerName: String = s"consumer-$sender-${UUID.randomUUID.toString}"
-    val kafkaConsumer: Publisher[KafkaMessage[String]] = kafka.consume(KafkaConfiguration.consumerProperties(consumerName))
-    kafkaConsumer
-  }
+  def route =
+    (get & path("chat") & parameter('name)) { name =>
+      handleWebsocketMessages(websocketDispatchFlow(sender = name))
+    }
 
   // The flow from beginning to end to be passed into handleWebsocketMessages
   def websocketDispatchFlow(sender: String): Flow[Message, Message, Unit] =
-    Flow[Message]
+  Flow[Message]
       // Convert the TextMessage to a ReceivedMessage
       .collect { case TextMessage.Strict(msg) => ReceivedMessage(sender, msg) }
       // Serialize it to JSON
@@ -60,9 +42,26 @@ class DispatchService(implicit fm: Materializer, system: ActorSystem) extends Di
       // Convert back to a TextMessage for serialization across the socket
       .map { case ReceivedMessage(from, msg) => TextMessage.Strict(s"$from: $msg") }
 
+  // Constructs and returns a flow that:
+  // 1. takes its input and redirects it to Kafka
+  // 2. provides as output all messages from Kafka
+  def kafkaFlow(sender: String): Flow[String, String, Unit] = {
+    val kafkaConsumer: Publisher[KafkaMessage[String]] = createKafkaConsumer(sender)
 
-  def route =
-    (get & path("chat") & parameter('name)) { name =>
-      handleWebsocketMessages(websocketDispatchFlow(sender = name))
-    }
+    val in: Sink[String, Unit] = Flow[String]
+        .map[ActorSubscriberMessage.OnNext](serializedMessage => ActorSubscriberMessage.OnNext(serializedMessage))
+        .to(Sink.actorRef(publishActor, ActorSubscriberMessage.OnComplete))
+
+    val out: Source[String, Unit] = Source
+        .fromPublisher(kafkaConsumer)
+        .map[String](_.message())
+
+    Flow.fromSinkAndSource(in, out)
+  }
+
+  def createKafkaConsumer(sender: String): Publisher[KafkaMessages.KafkaMessage[String]] = {
+    val consumerName: String = s"consumer-$sender-${UUID.randomUUID.toString}"
+    val kafkaConsumer: Publisher[KafkaMessage[String]] = kafka.consume(KafkaConfiguration.consumerProperties(consumerName))
+    kafkaConsumer
+  }
 }
