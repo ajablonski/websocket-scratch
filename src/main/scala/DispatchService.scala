@@ -50,7 +50,7 @@ class DispatchService(implicit fm: Materializer, system: ActorSystem) extends Di
 
     val in: Sink[String, Unit] = Flow[String]
         .map[ActorSubscriberMessage.OnNext](serializedMessage => ActorSubscriberMessage.OnNext(serializedMessage))
-        .to(Sink.actorRef(publishActor, ActorSubscriberMessage.OnComplete))
+        .to(Sink.actorRef(publishActor, ActorSubscriberMessage.OnNext(objectMapper.writeValueAsString(new ReceivedMessage(sender = "SYSTEM", msg = s"[$sender has signed off]")))))
 
     val out: Source[String, Unit] = Source
         .fromPublisher(kafkaConsumer)
